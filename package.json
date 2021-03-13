@@ -17,8 +17,7 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "yarn lint:fix-staged",
-            "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+            "pre-commit": "yarn lint:fix-staged"
         }
     },
     "dependencies": {
