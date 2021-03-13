@@ -29,6 +29,8 @@ contract StrategyLendHub {
 
     /// @notice 5%的管理费 500 / 10000
     uint256 public strategistReward = 500;
+    /// @notice 收获奖励
+    uint256 public harvestReward = 100;
     /// @notice 取款费，暂时没收
     uint256 public withdrawalFee = 0;
     /// @notice 各项费率基准值
@@ -89,6 +91,16 @@ contract StrategyLendHub {
     function setStrategistReward(uint256 _strategistReward) external {
         require(msg.sender == governance, "!governance");
         strategistReward = _strategistReward;
+    }
+
+    /**
+     * @dev 设置收获奖励
+     * @param _harvestReward 奖励
+     * @notice 只能由治理地址设置
+     */
+    function setHarvestReward(uint256 _harvestReward) external {
+        require(msg.sender == governance, "!governance");
+        harvestReward = _harvestReward;
     }
 
     /**
@@ -253,6 +265,10 @@ contract StrategyLendHub {
         if (gain > 0) {
             // 奖励 = 获得的数量 x 策略员奖励 / 10000
             uint256 _reward = gain.mul(strategistReward).div(FEE_DENOMINATOR);
+            // 触发harvest的奖励 开发者奖励的1/5
+            uint256 _harvestReward = _reward.mul(harvestReward).div(FEE_DENOMINATOR);
+            // 发送触发奖励
+            IERC20(want).safeTransfer(msg.sender, _harvestReward);
             // 将奖励发给策略员
             IERC20(want).safeTransfer(governance, _reward);
             // 存款
