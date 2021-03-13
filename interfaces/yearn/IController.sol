@@ -1,4 +1,5 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.12;
 
 interface IController {
     function withdraw(address, uint256) external;
@@ -12,4 +13,8 @@ interface IController {
     function rewards() external view returns (address);
 
     function vaults(address) external view returns (address);
+
+    function strategies(address) external view returns (address);
+
+    function approvedStrategies(address, address) external view returns (bool);
 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-interface cToken {
-    function mint(uint256 mintAmount) external returns (uint256);
+interface CETH {
+    function mint() external payable;
 
     function redeem(uint256 redeemTokens) external returns (uint256);
 
@@ -11,12 +11,6 @@ interface cToken {
     function borrow(uint256 borrowAmount) external returns (uint256);
 
     function repayBorrow(uint256 repayAmount) external returns (uint256);
-
-    function exchangeRateStored() external view returns (uint256);
-
-    function balanceOf(address _owner) external view returns (uint256);
-
-    function underlying() external view returns (address);
 
     function getAccountSnapshot(address account)
         external

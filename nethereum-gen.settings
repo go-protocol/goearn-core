@@ -1,0 +1,7 @@
+{
+    "projectName": "GoearnCore",
+    "namespace": "GoearnCore.Contracts",
+    "lang": 0,
+    "autoCodeGen": true,
+    "projectPath": "../"
+}
