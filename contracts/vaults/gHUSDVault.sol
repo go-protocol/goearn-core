@@ -119,6 +119,7 @@ contract gVault is ERC20 {
         }
         // 为调用者铸造份额
         _mint(msg.sender, shares);
+        earn();
     }
 
     /**
