@@ -36,10 +36,10 @@ contract Controller {
      * @param _rewards 奖励地址
      * @notice 将空闲余额发送到控制器,再调用控制器的赚钱方法
      */
-    constructor(address _rewards) public {
+    constructor(address _rewards, address _router) public {
         governance = msg.sender;
         strategist = msg.sender;
-        router = address(0xED7d5F38C79115ca12fe6C0041abb22F0A06C300);
+        router = _router;
         rewards = _rewards;
     }
 

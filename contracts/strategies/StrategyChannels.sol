@@ -4,11 +4,11 @@ pragma experimental ABIEncoderV2;
 
 import "./StrategyCommon.sol";
 
-contract StrategyLendHub is StrategyCommon {
+contract StrategyChannels is StrategyCommon {
     /// @notice comp控制器地址
-    address public constant comptrl = 0x6537d6307ca40231939985BCF7D83096Dd1B4C09;
+    address public constant comptrl = 0x8955aeC67f06875Ee98d69e6fe5BDEA7B60e9770;
     /// @notice comp代币地址
-    address public comp = 0x8F67854497218043E1f72908FFE38D0Ed7F24721;
+    address public comp = 0x1e6395E6B059fc97a4ddA925b6c5ebf19E05c69f;
 
     /**
      * @dev 构造函数
@@ -166,12 +166,8 @@ contract StrategyLendHub is StrategyCommon {
 
     ///@dev 收获方法
     function harvest() public onlyBenevolent {
-        // 市场数组
-        address[] memory markets = new address[](1);
-        // 数组唯一值为ctoken
-        markets[0] = ctoken;
         // 调用comp的控制器,取出comp代币
-        IUnitroller(comptrl).claimComp(address(this), markets);
+        IUnitroller(comptrl).claimCan(address(this));
         // 当前合约再comp代币的数量
         uint256 _comp = IERC20(comp).balanceOf(address(this));
 
