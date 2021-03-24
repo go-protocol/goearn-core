@@ -25,4 +25,6 @@ interface IVault {
     function withdraw(uint256) external;
 
     function withdrawAll() external;
+
+    function balance() external view returns (uint256);
 }
