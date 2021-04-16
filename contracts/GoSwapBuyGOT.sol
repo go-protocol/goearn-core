@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/GoSwap/IGoSwapPair.sol";
 import "../interfaces/GoSwap/IGoSwapFactory.sol";
+import "../interfaces/uniswap/Uni.sol";
 
 /**
  * @title 通过手续费回购GOT的合约
@@ -25,6 +26,8 @@ contract GoSwapBuyGOT is Ownable {
     address public constant sGOT = 0x324e22a6D46D514dDEcC0D98648191825BEfFaE3;
     address public constant GOT = 0xA7d5b5Dbc29ddef9871333AD2295B2E7D6F12391;
     address public constant HUSD = 0x0298c2b32eaE4da002a15f36fdf7615BEa3DA047;
+    /// @notice MDX 地址
+    address public constant MDX = 0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c;
 
     /**
      * @dev 返回所有配对合约
@@ -102,31 +105,13 @@ contract GoSwapBuyGOT is Ownable {
             _safeTransfer(token, IGoSwapFactory(factory).getPair(HUSD, GOT), amountIn);
             return amountIn;
         }
-        // 实例化token地址和HUSD地址的配对合约
-        IGoSwapPair pair = IGoSwapPair(IGoSwapFactory(factory).getPair(token, HUSD));
-        // 如果配对合约地址 == 0地址 返回0
-        if (address(pair) == address(0)) {
-            return 0;
-        }
-        // 从配对合约获取储备量0,储备量1
-        (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
-        // 找到token0
-        address token0 = pair.token0();
-        // 获取手续费
-        uint8 fee = pair.fee();
-        // 排序形成储备量In和储备量Out
-        (uint256 reserveIn, uint256 reserveOut) = token0 == token ? (reserve0, reserve1) : (reserve1, reserve0);
-        // 税后输入数额 = 输入数额 * (1000-fee)
-        uint256 amountInWithFee = amountIn.mul(1000 - fee);
-        // 输出数额 = 税后输入数额 * 储备量Out / 储备量In * 1000 + 税后输入数额
-        uint256 amountOut = amountInWithFee.mul(reserveOut) / reserveIn.mul(1000).add(amountInWithFee);
-        // 排序输出数额0和输出数额1,有一个是0
-        (uint256 amount0Out, uint256 amount1Out) = token0 == token ? (uint256(0), amountOut) : (amountOut, uint256(0));
-        // 将输入数额发送到配对合约
-        _safeTransfer(token, address(pair), amountIn);
-        // 执行配对合约的交换方法(输出数额0,输出数额1,发送到WETH和token的配对合约上)
-        pair.swap(amount0Out, amount1Out, IGoSwapFactory(factory).getPair(HUSD, GOT), new bytes(0));
-        return amountOut;
+        // 用mdx交换token和HUSD
+        _swap(MDX, token, HUSD, amountIn);
+        // 收到的HUSD余额
+        uint256 HUSDBalance = IERC20(HUSD).balanceOf(address(this));
+        // 将收到的HUSD发送到配对合约
+        _safeTransfer(token, IGoSwapFactory(factory).getPair(HUSD, GOT), HUSDBalance);
+        return HUSDBalance;
     }
 
     /**
@@ -156,6 +141,24 @@ contract GoSwapBuyGOT is Ownable {
         (uint256 amount0Out, uint256 amount1Out) = token0 == HUSD ? (uint256(0), amountOut) : (amountOut, uint256(0));
         // 执行配对合约的交换方法(输出数额0,输出数额1,发送到stake合约上)
         pair.swap(amount0Out, amount1Out, sGOT, new bytes(0));
+    }
+
+    /// @dev 交换
+    function _swap(
+        address router,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn
+    ) internal {
+        // 将tokenIn批准给路由合约无限数量
+        IERC20(tokenIn).approve(router, 0);
+        IERC20(tokenIn).approve(router, uint256(-1));
+        // 交易路径 USDT=>want
+        address[] memory path = new address[](2);
+        path[0] = tokenIn;
+        path[1] = tokenOut;
+        // 调用路由合约用tokenIn交换tokenOut
+        Uni(router).swapExactTokensForTokens(amountIn, uint256(0), path, address(this), block.timestamp.add(1800));
     }
 
     /**
