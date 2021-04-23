@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.12;
-pragma experimental ABIEncoderV2;
 
-import "./StrategyCommon.sol";
+import "./inc/StrategyComp.sol";
 
-contract StrategyChannels is StrategyCommon {
+contract StrategyChannels is StrategyComp {
     /// @dev comp控制器地址
     address _comptrl = 0x8955aeC67f06875Ee98d69e6fe5BDEA7B60e9770;
     /// @dev comp代币地址
@@ -20,18 +19,15 @@ contract StrategyChannels is StrategyCommon {
         address _controller,
         address _ctoken,
         address _want
-    ) public StrategyCommon(_controller, _ctoken, _want, _comptrl, _comp) {}
+    ) public StrategyComp(_controller, _want, _ctoken, _comptrl, _comp) {}
 
-    /// @dev 卖掉comp
-    function _sellComp() internal override {
-        // 市场数组ß
+    /// @dev 领取comp
+    function _getReward() internal override {
+        // 市场数组
         address[] memory markets = new address[](1);
         // 数组唯一值为ctoken
         markets[0] = ctoken;
         // 调用comp的控制器,取出comp代币
         IUnitroller(comptrl).claimCan(address(this), markets);
-        super._sellComp();
     }
-
-    receive() external payable {}
 }

@@ -3,11 +3,11 @@ pragma solidity >=0.6.12;
 
 import "./inc/StrategyComp.sol";
 
-contract StrategyLendHub is StrategyComp {
+contract StrategyFilda is StrategyComp {
     /// @dev comp控制器地址
-    address _comptrl = 0x6537d6307ca40231939985BCF7D83096Dd1B4C09;
+    address _comptrl = 0xb74633f2022452f377403B638167b0A135DB096d;
     /// @dev comp代币地址
-    address _comp = 0x8F67854497218043E1f72908FFE38D0Ed7F24721;
+    address _comp = 0xE36FFD17B2661EB57144cEaEf942D95295E637F0;
 
     /**
      * @dev 构造函数

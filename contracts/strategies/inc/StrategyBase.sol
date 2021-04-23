@@ -4,20 +4,13 @@ pragma solidity >=0.6.12;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../../interfaces/yearn/IController.sol";
-import "../../interfaces/compound/Token.sol";
-import "../../interfaces/compound/CETH.sol";
-import "../../interfaces/compound/IUnitroller.sol";
-import "../../interfaces/uniswap/Uni.sol";
-import "../../interfaces/weth/WETH.sol";
+import "../../../interfaces/yearn/IController.sol";
+import "../../../interfaces/mdex/ISwapMining.sol";
+import "../../../interfaces/uniswap/Uni.sol";
+import "../../../interfaces/weth/WETH.sol";
 
-interface ISwapMining {
-    function takerWithdraw() external;
-}
-
-contract StrategyCommon {
+contract StrategyBase {
     using SafeMath for uint256;
-
     /// @notice WHT地址
     address public constant WHT = 0x5545153CCFcA01fbd7Dd11C0b23ba694D9509A6F;
     /// @notice USDT地址
@@ -37,47 +30,40 @@ contract StrategyCommon {
     /// @notice keepr机器人
     address public keeper;
 
-    /// @notice 5%的管理费 450 / 10000
-    uint256 public strategistReward = 450;
+    /// @notice 5%的管理费 900 / 10000
+    uint256 public strategistReward = 900;
     /// @notice 收获奖励
-    uint256 public harvestReward = 50;
+    uint256 public harvestReward = 100;
     /// @notice 取款费
-    uint256 public withdrawalFee = 50;
+    uint256 public withdrawalFee = 0;
     /// @notice 各项费率基准值
     uint256 public constant FEE_DENOMINATOR = 10000;
-
-    /// @notice ctoken地址
-    address public immutable ctoken;
     /// @notice want地址
     address public immutable want;
+    /// @notice reward token奖励token
+    address public rewardToken;
 
+    /// @notice 治理地址
     address public governance;
+    /// @notice 控制器地址
     address public controller;
+    /// @notice 策略员地址
     address public strategist;
-
-    /// @notice comp控制器地址
-    address public immutable comptrl;
-    /// @notice comp代币地址
-    address public immutable comp;
 
     /**
      * @dev 构造函数
+     * @param _controller 控制器地址
+     * @param _want 本币地址
      */
-    constructor(
-        address _controller,
-        address _ctoken,
-        address _want,
-        address _comptrl,
-        address _comp
-    ) public {
+    constructor(address _controller, address _want) public {
         governance = msg.sender;
         strategist = msg.sender;
         controller = _controller;
-        ctoken = _ctoken;
         want = _want;
-        comptrl = _comptrl;
-        comp = _comp;
     }
+
+    /// @dev 收款
+    receive() external payable {}
 
     /// @dev 确认调用者不能是除了治理和策略员以外的其他合约
     modifier onlyBenevolent {
@@ -154,14 +140,11 @@ contract StrategyCommon {
     }
 
     ///@notice 返回当前合约的在存款池中的余额
-    ///@return ctoken 中的余额
-    function balanceOfPool() public view returns (uint256) {
-        (, uint256 cTokenBal, , uint256 exchangeRate) = cToken(ctoken).getAccountSnapshot(address(this));
-        return cTokenBal.mul(exchangeRate).div(1e18);
-    }
+    ///@return pool 中的余额
+    function balanceOfPool() public view virtual returns (uint256) {}
 
     ///@notice 本策略管理的总want数额
-    function balanceOf() public view returns (uint256) {
+    function balanceOf() public view virtual returns (uint256) {
         return balanceOfWant().add(balanceOfPool());
     }
 
@@ -169,12 +152,14 @@ contract StrategyCommon {
     function _doSwapMining() internal {
         // 从MDX交易即挖矿提取MDX
         ISwapMining(SwapMining).takerWithdraw();
-        // mdx余额
-        uint256 mdxBalance = IERC20(MDX).balanceOf(address(this));
-        // 如果mdx余额>0
-        if (mdxBalance > 0) {
-            // 用MDX交换USDT
-            _swap(uniRouter, MDX, USDT, mdxBalance);
+        if (want != MDX) {
+            // mdx余额
+            uint256 mdxBalance = IERC20(MDX).balanceOf(address(this));
+            // 如果mdx余额>0
+            if (mdxBalance > 0) {
+                // 用MDX交换USDT
+                _swap(uniRouter, MDX, USDT, mdxBalance);
+            }
         }
     }
 
@@ -232,31 +217,20 @@ contract StrategyCommon {
      * @dev 存款方法
      * @notice 将want发送到ctoken,如果是wht就发送到ceth
      */
-    function deposit() public {
+    function deposit() public virtual {
         // _want余额 = 当前合约在_want合约中的余额
-        uint256 _want = IERC20(want).balanceOf(address(this));
+        uint256 _want = balanceOfWant();
         // 如果_want余额 > 0
         if (_want > 0) {
-            // 如果want地址==WHT地址
-            if (want == WHT) {
-                // 从WHT合约取款WHT
-                IWETH(WHT).withdraw(_want);
-                // 当前合约的HT余额
-                uint256 balance = address(this).balance;
-                // 如果HT余额>0
-                if (balance > 0) {
-                    // 调用ctoken的铸造方法铸造_want数量的ctoken
-                    CETH(ctoken).mint{value: balance}();
-                }
-            } else {
-                // 将_want余额数量的want批准给ctoken地址
-                IERC20(want).approve(ctoken, 0);
-                IERC20(want).approve(ctoken, _want);
-                // 调用ctoken的铸造方法铸造_want数量的ctoken,并确认返回0
-                require(cToken(ctoken).mint(_want) == 0, "deposit fail");
-            }
+            _depositSome(_want);
         }
     }
+
+    /**
+     * @dev 私有存款，存入指定数量
+     * @param _want want的数量
+     */
+    function _depositSome(uint256 _want) internal virtual {}
 
     /**
      * @notice 将当前合约在'_asset'资产合约的余额'balance'发送给控制器合约
@@ -271,10 +245,6 @@ contract StrategyCommon {
         require(msg.sender == controller, "!controller");
         // 资产地址不能等于want地址
         require(want != address(_asset), "want");
-        // 资产地址不能等于ctoken地址
-        require(ctoken != address(_asset), "want");
-        // 资产地址不能等于comp地址
-        require(comp != address(_asset), "want");
         // 当前合约在资产合约中的余额
         balance = _asset.balanceOf(address(this));
         // 将资产合约的余额发送给控制器合约
@@ -292,7 +262,7 @@ contract StrategyCommon {
         // 只允许控制器合约调用
         require(msg.sender == controller, "!controller");
         // 当前合约的want余额
-        uint256 _balance = IERC20(want).balanceOf(address(this));
+        uint256 _balance = balanceOfWant();
         //如果 余额 < 提现数额
         if (_balance < _amount) {
             // 数额 = 赎回资产（数额 - 余额）
@@ -322,27 +292,7 @@ contract StrategyCommon {
      * @param _amount 数额
      * @return _withdrew 赎回数额
      */
-    function _withdrawSome(uint256 _amount) internal returns (uint256) {
-        // 之前 = 当前合约的want余额
-        uint256 before = IERC20(want).balanceOf(address(this));
-        // 如果want地址==WHT地址
-        if (want == WHT) {
-            // 确认成功调用CETH合约的赎回底层资产方法,数量为_amount
-            require(CETH(ctoken).redeemUnderlying(_amount) == 0, "redeem fail");
-            // 当前合约的HT余额
-            uint256 balance = address(this).balance;
-            // 如果HT余额大于0
-            if (balance > 0) {
-                // 向WHT合约存款
-                IWETH(want).deposit{value: balance}();
-            }
-        } else {
-            // 确认成功调用CToken合约的赎回底层资产方法,数量为_amount
-            require(cToken(ctoken).redeemUnderlying(_amount) == 0, "redeem fail");
-        }
-        // 返回当前合约在want合约的余额 - 之前的数量
-        return IERC20(want).balanceOf(address(this)).sub(before);
-    }
+    function _withdrawSome(uint256 _amount) internal virtual returns (uint256) {}
 
     /**
      * @notice 将当前合约的USDT全部发送给控制器合约的保险库
@@ -351,7 +301,7 @@ contract StrategyCommon {
      * 提取所有资金，通常在迁移策略时使用
      */
     // Withdraw all funds, normally used when migrating strategies
-    function withdrawAll() external returns (uint256 balance) {
+    function withdrawAll() external virtual returns (uint256 balance) {
         // 只允许控制器合约调用
         require(msg.sender == controller, "!controller");
         //调用内部全部提款方法
@@ -369,28 +319,35 @@ contract StrategyCommon {
     }
 
     /// @dev 提款全部方法
-    function _withdrawAll() internal {
+    function _withdrawAll() internal virtual {
         // 调用内部赎回资产方法
         _withdrawSome(balanceOfPool());
     }
 
-    /// @dev 虚构卖掉comp方法
-    function _sellComp() internal virtual {
-        // 当前合约在comp代币的数量
-        uint256 _comp = IERC20(comp).balanceOf(address(this));
-        // 如果comp数量>0
-        if (_comp > 0) {
-            // 用comp交换USDT
-            _swap(uniRouter, comp, USDT, _comp);
+    /// @dev 获取额外奖励方法
+    function _getReward() internal virtual {}
+
+    /// @dev 虚构卖掉奖励方法
+    function _sellReward() internal virtual {
+        if (rewardToken != USDT) {
+            // 当前合约在reward代币的数量
+            uint256 _reward = IERC20(rewardToken).balanceOf(address(this));
+            // 如果comp数量>0
+            if (_reward > 0) {
+                // 用comp交换USDT
+                _swap(uniRouter, rewardToken, USDT, _reward);
+            }
         }
     }
 
     /// @dev 收获方法
-    function harvest() public onlyBenevolent {
+    function harvest() public virtual onlyBenevolent {
         // 之前 = 当前合约在want的数量
-        uint256 before = IERC20(want).balanceOf(address(this));
-        // 卖掉comp
-        _sellComp();
+        uint256 before = balanceOfWant();
+        // 获取奖励
+        _getReward();
+        // 卖掉奖励
+        _sellReward();
         // MDX交易即挖矿
         _doSwapMining();
         // 发送复利奖励
@@ -398,7 +355,7 @@ contract StrategyCommon {
         // 购买本币
         _buyWant();
         // 获得的数量 = 当前合约在want的余额 - 之前的数量
-        uint256 gain = IERC20(want).balanceOf(address(this)).sub(before);
+        uint256 gain = balanceOfWant().sub(before);
         // 如果获得的数量>0
         if (gain > 0) {
             // 存款
