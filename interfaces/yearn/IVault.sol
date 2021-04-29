@@ -27,4 +27,6 @@ interface IVault {
     function withdrawAll() external;
 
     function balance() external view returns (uint256);
+
+    function balanceOf(address) external view returns (uint256);
 }

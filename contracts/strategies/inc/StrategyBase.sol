@@ -321,7 +321,7 @@ contract StrategyBase {
     /// @dev 提款全部方法
     function _withdrawAll() internal virtual {
         // 调用内部赎回资产方法
-        _withdrawSome(balanceOfPool());
+        _withdrawSome(balanceOf());
     }
 
     /// @dev 获取额外奖励方法

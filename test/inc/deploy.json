@@ -1,0 +1,60 @@
+{
+    "MDX": [
+        {
+            "strategy": "StrategySoloMDX",
+            "param": [
+                "0xd5BE05a54E86AC41c6E46f70c7b75F4c337161f5",
+                "0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c",
+                "5"
+            ]
+        },
+        {
+            "strategy": "StrategyChannels",
+            "param": [
+                "0xd5BE05a54E86AC41c6E46f70c7b75F4c337161f5",
+                "0x9A0d6C2fc560F796c3889DE89f0a9C6fA1aa41b2",
+                "0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c"
+            ]
+        },
+        {
+            "strategy": "StrategyCoinWind",
+            "param": [
+                "0xd5BE05a54E86AC41c6E46f70c7b75F4c337161f5",
+                "0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c"
+            ]
+        },
+        {
+            "strategy": "StrategyFilda",
+            "param": [
+                "0xd5BE05a54E86AC41c6E46f70c7b75F4c337161f5",
+                "0x5788C014D41cA706DE03969E283eE7b93827B7B1",
+                "0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c"
+            ]
+        },
+        {
+            "strategy": "StrategyGolf",
+            "param": [
+                "0xd5BE05a54E86AC41c6E46f70c7b75F4c337161f5",
+                "0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c",
+                "bfb45b9eeda8e6b11797894ef023b62a01192cfe",
+                "0x95f0b69f25498171062bdCcb04Da7a9Aea21466A"
+            ]
+        },
+        {
+            "strategy": "StrategyLendHub",
+            "param": [
+                "0xd5BE05a54E86AC41c6E46f70c7b75F4c337161f5",
+                "0x6c4b0a4c19E0a842580dd116A306f297dc28cAC6",
+                "0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c"
+            ]
+        },
+        {
+            "strategy": "StrategyPilot",
+            "param": [
+                "0xd5BE05a54E86AC41c6E46f70c7b75F4c337161f5",
+                "0x25D2e80cB6B86881Fd7e07dd263Fb79f4AbE033c",
+                "0xBaBDE12175EF7A8Fd330EE52C3225F9C5507c17f"
+            ]
+        }
+    ]
+}

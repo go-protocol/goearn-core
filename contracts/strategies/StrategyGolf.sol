@@ -37,6 +37,13 @@ contract StrategyGolf is StrategyVault {
     function _withdrawHT(uint256 amount) internal override {
         // 从Vault解除质押
         IVault(vault).withdrawHT(amount);
+        // 当前合约的HT余额
+        uint256 balance = address(this).balance;
+        // 如果HT余额大于0
+        if (balance > 0) {
+            // 向WHT合约存款
+            IWETH(want).deposit{value: balance}();
+        }
     }
 
     function _withdrawToken(uint256 amount) internal override {

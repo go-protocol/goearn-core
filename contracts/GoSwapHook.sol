@@ -2,20 +2,9 @@
 pragma solidity =0.6.12;
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-interface IStrategy {
-    function harvest() external;
-}
-
-interface IVault {
-    function token() external view returns (address);
-
-    function controller() external view returns (address);
-}
-
-interface IController {
-    function strategies(address) external view returns (address);
-}
+import "../interfaces/yearn/IStrategy.sol";
+import "../interfaces/yearn/IVault.sol";
+import "../interfaces/yearn/IController.sol";
 
 /**
  * @title 交易钩子合约,替换这个合约可以在swap交易过程中插入操作

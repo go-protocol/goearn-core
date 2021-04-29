@@ -19,7 +19,7 @@ contract StrategyEdc is StrategyPool {
         uint256 _pool
     ) public StrategyPool(_controller, _want, _pool) {
         rewardToken = EDC;
-        vault = 0x1cF73836aE625005897a1aF831479237B6d1e4D2;
+        vault = 0x80b0eAfA5AAec24c3971d55A4919e8D6a6b71c78;
     }
 
     ///@notice 返回当前合约的在存款池中的余额

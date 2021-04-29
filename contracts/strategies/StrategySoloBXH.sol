@@ -19,7 +19,7 @@ contract StrategySoloBXH is StrategyPool {
         uint256 _pool
     ) public StrategyPool(_controller, _want, _pool) {
         rewardToken = BXH;
-        vault = 0x1cF73836aE625005897a1aF831479237B6d1e4D2;
+        vault = 0xE1f39a72a1D012315d581c4F35bb40e24196DAc8;
     }
 
     ///@notice 返回当前合约的在存款池中的余额

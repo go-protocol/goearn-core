@@ -119,26 +119,12 @@ contract StrategyHfi is StrategyBase {
         return super.withdraw(_asset);
     }
 
-    /// @dev 从Pool取款
-    function withdrawFromPool() public {
-        // 只允许控制器合约调用
-        require(msg.sender == controller, "!controller");
-        _withdrawFromPool();
-    }
-
     /// @dev 私有从Pool取款
     function _withdrawFromPool() internal {
         // 当前合约之前在pool的余额
         uint256 _bal = balanceOfPool();
         // 从Pool解除质押
         IMasterChef(MasterChef).withdraw(pool, _bal);
-    }
-
-    /// @dev 从Vault取款
-    function withdrawFromVault() public {
-        // 只允许控制器合约调用
-        require(msg.sender == controller, "!controller");
-        _withdrawFromVault();
     }
 
     function _withdrawHT(uint256 amount) internal virtual {

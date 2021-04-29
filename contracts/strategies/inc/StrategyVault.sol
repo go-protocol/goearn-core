@@ -64,33 +64,36 @@ contract StrategyVault is StrategyBase {
      * @param _want want的数量
      * @notice 从当前合约存入到保险库Vault，然后将保险库的存款凭证存入到挖矿池子Pool
      */
-    function _depositSome(uint256 _want) internal override {
-        // 如果want地址==WHT地址
-        if (want == WHT) {
-            // 从WHT合约取款WHT
-            IWETH(WHT).withdraw(_want);
-            // 当前合约的HT余额
-            uint256 balance = address(this).balance;
-            // 如果HT余额>0
-            if (balance > 0) {
-                _depositHT(balance);
+    function _depositSome(uint256 _want) internal virtual override {
+        if (_want > 0) {
+            // 如果want地址==WHT地址
+            if (want == WHT) {
+                // 从WHT合约取款WHT
+                IWETH(WHT).withdraw(_want);
+                // 当前合约的HT余额
+                uint256 balance = address(this).balance;
+                // 如果HT余额>0
+                if (balance > 0) {
+                    _depositHT(balance);
+                }
+            } else {
+                // 将_want余额数量的want批准给vault地址
+                IERC20(want).approve(vault, 0);
+                IERC20(want).approve(vault, _want);
+                // 调用vault的存款方法
+                _depositToken(_want);
             }
-        } else {
-            // 将_want余额数量的want批准给vault地址
-            IERC20(want).approve(vault, 0);
-            IERC20(want).approve(vault, _want);
-            // 调用vault的存款方法
-            _depositToken(_want);
+            // 当前合约的GTOKEN余额
+            uint256 _bal = balanceOfVault();
+
+            // 当前合约之前在pool的余额
+            uint256 before = balanceOfPool();
+            // 将bal余额数量的GTOKEN批准给pool地址
+            IERC20(vault).approve(pool, 0);
+            IERC20(vault).approve(pool, _bal);
+            IStakingPool(pool).stake(_bal);
+            require(balanceOfPool() == before.add(_bal), "deposit fail!");
         }
-        // 当前合约的GTOKEN余额
-        uint256 _bal = balanceOfVault();
-        // 当前合约之前在pool的余额
-        uint256 before = balanceOfPool();
-        // 将bal余额数量的GTOKEN批准给pool地址
-        IERC20(vault).approve(pool, 0);
-        IERC20(vault).approve(pool, _bal);
-        IStakingPool(pool).stake(_bal);
-        require(balanceOfPool() == before.add(_bal), "deposit fail!");
     }
 
     /**
@@ -119,7 +122,7 @@ contract StrategyVault is StrategyBase {
         // 当前合约之前在pool的余额
         uint256 _bal = balanceOfPool();
         // 从Pool解除质押
-        IStakingPool(pool).withdraw(_bal);
+        if (_bal > 0) IStakingPool(pool).withdraw(_bal);
     }
 
     /// @dev 从Vault取款
@@ -128,10 +131,6 @@ contract StrategyVault is StrategyBase {
         require(msg.sender == controller, "!controller");
         _withdrawFromVault();
     }
-
-    function _withdrawHT(uint256 amount) internal virtual {}
-
-    function _withdrawToken(uint256 amount) internal virtual {}
 
     /// @dev 私有从Vault取款
     function _withdrawFromVault() internal {
@@ -146,6 +145,10 @@ contract StrategyVault is StrategyBase {
         }
     }
 
+    function _withdrawHT(uint256 amount) internal virtual {}
+
+    function _withdrawToken(uint256 amount) internal virtual {}
+
     /**
      * @notice 根据当前合约在dusdt的余额计算出可以在dusdt中赎回的数额,并赎回资产
      * @dev 内部赎回资产方法
@@ -156,20 +159,10 @@ contract StrategyVault is StrategyBase {
         // 从Pool和Vault解除质押
         _withdrawFromPool();
         _withdrawFromVault();
-        // 如果want地址==WHT地址
-        if (want == WHT) {
-            // 当前合约的HT余额
-            uint256 balance = address(this).balance;
-            // 如果HT余额大于0
-            if (balance > 0) {
-                // 向WHT合约存款
-                IWETH(want).deposit{value: balance}();
-            }
-        }
         // 确认当前合约余额大于取款数额
         require(balanceOfWant() >= _amount, "Insufficient amount");
         // 将当前合约的want余额减去取款数额，剩余再存回
-        _depositSome(balanceOfWant().sub(_amount));
+        if (balanceOfWant().sub(_amount) > 0) _depositSome(balanceOfWant().sub(_amount));
         // 返回当前合约在want合约的余额 - 之前的数量
         return _amount;
     }

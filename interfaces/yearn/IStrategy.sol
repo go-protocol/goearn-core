@@ -4,6 +4,8 @@ pragma solidity >=0.6.12;
 interface IStrategy {
     function want() external view returns (address);
 
+    function harvest() external;
+
     function deposit() external;
 
     // NOTE: must exclude any tokens used in the yield

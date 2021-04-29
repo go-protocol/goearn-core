@@ -3,7 +3,7 @@ pragma solidity >=0.6.12;
 import "./VaultCommon.sol";
 import "../../interfaces/weth/WETH.sol";
 
-contract gVault is VaultCommon, ERC20 {
+contract gVaultHT is VaultCommon, ERC20 {
     /// @dev WHT地址
     address public constant WHT = 0x5545153CCFcA01fbd7Dd11C0b23ba694D9509A6F;
 
